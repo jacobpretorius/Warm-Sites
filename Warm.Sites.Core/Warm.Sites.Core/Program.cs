@@ -16,8 +16,65 @@ namespace Warm.Sites.Core
 
         public static async System.Threading.Tasks.Task Main(string[] args)
         {
-            Console.WriteLine("Starting Warm Sites v0.8 - 2021 (Made by Jacob)");
+            Console.WriteLine("Starting Warm Sites v0.9 - 2021 (Made by Jacob)");
 
+            using (var client = new HttpClient())
+            {
+                client.Timeout = new TimeSpan(0, 2, 0);
+
+                while (true)
+                {
+                    // Read targets
+                    ReadTargetsFile();
+
+                    if (Targets?.TargetUrls?.Any() != true)
+                    {
+                        // Sleep for 5 mins and retry
+                        Thread.Sleep(300000);
+                        continue;
+                    }
+
+                    foreach (var url in Targets.TargetUrls)
+                    {
+                        Console.WriteLine($"  {DateTime.Now.ToShortTimeString()} checking: {url}");
+
+                        // Visit url
+                        try
+                        {
+                            var result = await client.GetAsync(url);
+                            if (result.IsSuccessStatusCode)
+                            {
+                                result.Headers.TryGetValues("x-backend-server", out var serverHeader);
+
+                                Console.WriteLine($"    Up - {serverHeader.First()}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"    ?? - Timed out or server error");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("    xx - Could not reach server, host mapped?");
+                        }
+
+                        Thread.Sleep(100);
+                    }
+
+                    // Sleep for 5 mins
+                    Thread.Sleep(300000);
+                }
+            }
+        }
+
+        private static string GetBasePath()
+        {
+            using var processModule = Process.GetCurrentProcess().MainModule;
+            return Path.GetDirectoryName(processModule?.FileName);
+        }
+
+        private static void ReadTargetsFile()
+        {
             // Read/create targets file
             var localPath = Path.Combine(GetBasePath(), _targetsFile);
             if (File.Exists(localPath))
@@ -41,54 +98,9 @@ namespace Warm.Sites.Core
                         fileWriter.Write(JsonSerializer.Serialize(new Targets()));
                     }
                 }
+
+                throw new Exception("Please edit 'targets.json' and restart.");
             }
-
-            if (Targets.TargetUrls.Length > 0)
-            {
-                using (var client = new HttpClient())
-                {
-                    client.Timeout = new TimeSpan(0, 2, 0);
-
-                    while (true)
-                    {
-                        foreach (var url in Targets.TargetUrls)
-                        {
-                            Console.WriteLine($"  {DateTime.Now.ToShortTimeString()} checking: {url}");
-
-                            // Visit url
-                            try
-                            {
-                                var result = await client.GetAsync(url);
-                                if (result.IsSuccessStatusCode)
-                                {
-                                    result.Headers.TryGetValues("x-backend-server", out var serverHeader);
-
-                                    Console.WriteLine($"    Up - {serverHeader.First()}");
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"    ?? - Timed out or server error");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine("    Something went wrong");
-                            }
-
-                            Thread.Sleep(1000);
-                        }
-
-                        // Sleep for 5 mins
-                        Thread.Sleep(300000);
-                    }
-                }
-            }
-        }
-
-        private static string GetBasePath()
-        {
-            using var processModule = Process.GetCurrentProcess().MainModule;
-            return Path.GetDirectoryName(processModule?.FileName);
         }
     }
 }
