@@ -16,7 +16,7 @@ namespace Warm.Sites.Core
 
         public static async System.Threading.Tasks.Task Main(string[] args)
         {
-            Console.WriteLine("Starting Warm Sites v0.9 - 2021 (Made by Jacob)");
+            Console.WriteLine("Starting Warm Sites v1.0 - 2021 (Made by Jacob)");
 
             using (var client = new HttpClient())
             {
@@ -61,6 +61,7 @@ namespace Warm.Sites.Core
                         Thread.Sleep(100);
                     }
 
+                    Console.WriteLine($"-- {DateTime.Now.ToShortTimeString()} all done for now.");
                     // Sleep for 5 mins
                     Thread.Sleep(300000);
                 }
@@ -79,12 +80,19 @@ namespace Warm.Sites.Core
             var localPath = Path.Combine(GetBasePath(), _targetsFile);
             if (File.Exists(localPath))
             {
-                // Read file
-                FileStream fileStream = new FileStream(localPath, FileMode.Open);
-                using (StreamReader reader = new StreamReader(fileStream))
+                try
                 {
-                    var fileAsString = reader.ReadToEnd();
-                    Targets = JsonSerializer.Deserialize<Targets>(fileAsString);
+                    // Read file
+                    FileStream fileStream = new FileStream(localPath, FileMode.Open);
+                    using (StreamReader reader = new StreamReader(fileStream))
+                    {
+                        var fileAsString = reader.ReadToEnd();
+                        Targets = JsonSerializer.Deserialize<Targets>(fileAsString);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error reading the targets file, is it open in other program?");
                 }
             }
             else
@@ -99,7 +107,7 @@ namespace Warm.Sites.Core
                     }
                 }
 
-                throw new Exception("Please edit 'targets.json' and restart.");
+                throw new Exception("Please edit 'targets.json' and restart the program.");
             }
         }
     }
